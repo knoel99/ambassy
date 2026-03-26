@@ -118,16 +118,18 @@ def create_map():
                 </div>
                 """
 
-                # Embassy marker
-                folium.CircleMarker(
+                # Embassy marker with flag icon
+                flag = FLAGS.get(origin_country, "")
+                flag_icon = folium.DivIcon(
+                    html=f'<div style="font-size:22px;text-shadow:1px 1px 2px rgba(0,0,0,0.5);cursor:pointer;">{flag}</div>',
+                    icon_size=(28, 28),
+                    icon_anchor=(14, 14),
+                )
+                folium.Marker(
                     location=[e_lat, e_lon],
-                    radius=7,
-                    color=COUNTRY_COLORS.get(origin_country, "#333"),
-                    fill=True,
-                    fill_color=COUNTRY_COLORS.get(origin_country, "#333"),
-                    fill_opacity=0.8,
+                    icon=flag_icon,
                     popup=folium.Popup(embassy_html, max_width=300),
-                    tooltip=f"{FLAGS.get(origin_country, '')} {origin_country} - {dist_km:.1f} km",
+                    tooltip=f"{flag} {origin_country} - {dist_km:.1f} km",
                 ).add_to(fg)
 
                 # Distance line from embassy to power center
