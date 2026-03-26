@@ -358,27 +358,78 @@ def _build_legend_html(stats):
 def generate_distance_matrix_html():
     """Generate an HTML page with a distance matrix table."""
     distances = compute_distances()
-    countries = sorted(POWER_CENTERS.keys())
 
-    # Collect all distances and find min/max for color scale
+    # Group countries by continent
+    CONTINENTS = [
+        ("Americas", ["Argentina", "Brazil", "Canada", "Mexico", "United States"]),
+        ("Europe", ["European Union", "France", "Germany", "Italy", "Russia", "Turkey", "United Kingdom"]),
+        ("Asia-Pacific", ["Australia", "China", "India", "Indonesia", "Israel", "Japan", "Saudi Arabia", "South Korea"]),
+        ("Africa", ["South Africa"]),
+    ]
+    # Flat ordered list
+    countries = []
+    continent_ranges = []
+    for continent, members in CONTINENTS:
+        start = len(countries)
+        countries.extend(members)
+        continent_ranges.append((continent, start, len(countries)))
+
+    # Use log scale for better color differentiation on small distances
+    import math
     all_dists = []
     for host in countries:
         for origin in countries:
             if host != origin and host in distances and origin in distances[host]:
                 all_dists.append(distances[host][origin])
-    min_d = min(all_dists) if all_dists else 0
-    max_d = max(all_dists) if all_dists else 1
+    all_dists.sort()
 
+    # Use percentile-based coloring for much better contrast
     def dist_color(d):
-        """Green (close) -> Yellow -> Red (far)."""
-        ratio = (d - min_d) / (max_d - min_d) if max_d != min_d else 0
-        if ratio < 0.5:
-            r = int(255 * ratio * 2)
-            g = 200
+        """Color based on percentile rank among all distances."""
+        # Find percentile
+        idx = 0
+        for i, v in enumerate(all_dists):
+            if v >= d:
+                idx = i
+                break
         else:
+            idx = len(all_dists) - 1
+        ratio = idx / max(len(all_dists) - 1, 1)
+
+        # Multi-stop gradient: deep green -> green -> yellow -> orange -> red
+        if ratio < 0.25:
+            t = ratio / 0.25
+            r = int(0 + 80 * t)
+            g = int(140 + 60 * t)
+            b = int(60 - 30 * t)
+        elif ratio < 0.5:
+            t = (ratio - 0.25) / 0.25
+            r = int(80 + 175 * t)
+            g = int(200 - 10 * t)
+            b = int(30 - 30 * t)
+        elif ratio < 0.75:
+            t = (ratio - 0.5) / 0.25
             r = 255
-            g = int(200 * (1 - (ratio - 0.5) * 2))
-        return f"rgb({r},{g},0)"
+            g = int(190 - 100 * t)
+            b = 0
+        else:
+            t = (ratio - 0.75) / 0.25
+            r = 255
+            g = int(90 - 90 * t)
+            b = 0
+        return f"rgb({r},{g},{b})"
+
+    def text_color(d):
+        """White text on dark backgrounds, black on light."""
+        idx = 0
+        for i, v in enumerate(all_dists):
+            if v >= d:
+                idx = i
+                break
+        else:
+            idx = len(all_dists) - 1
+        ratio = idx / max(len(all_dists) - 1, 1)
+        return "#fff" if ratio < 0.2 or ratio > 0.8 else "#000"
 
     def flag_img(country, size=20):
         code = COUNTRY_CODES.get(country, "")
@@ -386,29 +437,53 @@ def generate_distance_matrix_html():
             return ""
         return f'<img src="https://flagcdn.com/w40/{code}.png" width="{size}" style="vertical-align:middle;border-radius:2px;">'
 
-    # Build header row
-    header_cells = '<th style="position:sticky;left:0;z-index:2;background:#f8f8f8;min-width:50px;"></th>'
-    for c in countries:
-        code = COUNTRY_CODES.get(c, "")
-        header_cells += f'''<th style="padding:4px;font-size:10px;writing-mode:vertical-lr;text-align:left;
-            white-space:nowrap;background:#f8f8f8;position:sticky;top:0;z-index:1;">
-            {flag_img(c, 16)}<br>{c}</th>'''
+    # Continent colors for separator styling
+    continent_colors = {
+        "Americas": "#e3f2fd",
+        "Europe": "#fce4ec",
+        "Asia-Pacific": "#e8f5e9",
+        "Africa": "#fff3e0",
+    }
 
-    # Build data rows
+    # Build header row with continent grouping
+    header_top = '<th colspan="1" style="position:sticky;left:0;top:0;z-index:3;background:#fff;"></th>'
+    header_bottom = '<th style="position:sticky;left:0;top:28px;z-index:3;background:#f8f8f8;min-width:50px;"></th>'
+    for continent, start, end in continent_ranges:
+        span = end - start
+        bg = continent_colors.get(continent, "#f8f8f8")
+        header_top += f'<th colspan="{span}" style="position:sticky;top:0;z-index:2;background:{bg};padding:4px 6px;font-size:11px;font-weight:700;border-bottom:2px solid #999;letter-spacing:0.03em;">{continent}</th>'
+    for c in countries:
+        header_bottom += f'''<th style="padding:4px;font-size:9px;writing-mode:vertical-lr;text-align:left;
+            white-space:nowrap;background:#f8f8f8;position:sticky;top:28px;z-index:2;min-width:38px;">
+            {flag_img(c, 14)}<br>{c}</th>'''
+
+    # Build data rows with continent separators
     rows = ""
-    for host in countries:
-        cells = f'<td style="position:sticky;left:0;z-index:1;background:#f8f8f8;padding:4px 8px;font-size:11px;white-space:nowrap;font-weight:600;">{flag_img(host, 16)} {host}</td>'
-        for origin in countries:
-            if host == origin:
-                cells += '<td style="background:#e0e0e0;"></td>'
-            elif host in distances and origin in distances[host]:
-                d = distances[host][origin]
-                bg = dist_color(d)
-                # Choose text color for readability
-                cells += f'<td style="background:{bg};color:#000;padding:2px 4px;font-size:10px;text-align:right;white-space:nowrap;" title="{origin} embassy in {host}: {d:.1f} km">{d:.0f}</td>'
-            else:
-                cells += '<td style="background:#f0f0f0;color:#999;font-size:9px;text-align:center;">—</td>'
-        rows += f"<tr>{cells}</tr>\n"
+    prev_continent = None
+    for ci, (continent, start, end) in enumerate(continent_ranges):
+        bg = continent_colors.get(continent, "#f8f8f8")
+        # Continent separator row
+        rows += f'<tr><td colspan="{len(countries)+1}" style="background:{bg};padding:3px 8px;font-size:10px;font-weight:700;letter-spacing:0.05em;color:#555;border-top:2px solid #bbb;">{continent}</td></tr>\n'
+        for host in countries[start:end]:
+            cells = f'<td style="position:sticky;left:0;z-index:1;background:#fafafa;padding:4px 8px;font-size:11px;white-space:nowrap;font-weight:600;border-right:2px solid #ddd;">{flag_img(host, 16)} {host}</td>'
+            for oi, origin in enumerate(countries):
+                # Add continent separator border
+                border_left = ""
+                for _, s2, _ in continent_ranges:
+                    if oi == s2:
+                        border_left = "border-left:2px solid #bbb;"
+                        break
+
+                if host == origin:
+                    cells += f'<td style="background:#d0d0d0;{border_left}"></td>'
+                elif host in distances and origin in distances[host]:
+                    d = distances[host][origin]
+                    bg_c = dist_color(d)
+                    fg_c = text_color(d)
+                    cells += f'<td style="background:{bg_c};color:{fg_c};padding:2px 4px;font-size:10px;text-align:right;white-space:nowrap;{border_left}" title="{origin} embassy → {host} power center: {d:.1f} km">{d:.0f}</td>'
+                else:
+                    cells += f'<td style="background:#f0f0f0;color:#999;font-size:9px;text-align:center;{border_left}">—</td>'
+            rows += f"<tr>{cells}</tr>\n"
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -434,11 +509,12 @@ body {{
     display: flex; align-items: center; gap: 4px; font-size: 11px; color: #666; margin-left: auto;
 }}
 .legend-bar {{
-    width: 120px; height: 12px; border-radius: 3px;
-    background: linear-gradient(to right, rgb(0,200,0), rgb(255,200,0), rgb(255,0,0));
+    width: 160px; height: 14px; border-radius: 3px;
+    background: linear-gradient(to right, rgb(0,140,60), rgb(80,200,30), rgb(255,190,0), rgb(255,90,0), rgb(255,0,0));
+    border: 1px solid #ccc;
 }}
 .table-wrap {{
-    overflow: auto; max-height: calc(100vh - 100px); border: 1px solid #ddd; border-radius: 8px;
+    overflow: auto; max-height: calc(100vh - 120px); border: 1px solid #ccc; border-radius: 8px;
 }}
 table {{
     border-collapse: collapse; font-size: 11px;
@@ -450,7 +526,7 @@ th {{
     background: #f8f8f8; font-weight: 600;
 }}
 tr:hover td {{
-    filter: brightness(0.92);
+    filter: brightness(0.9);
 }}
 .note {{
     margin-top: 12px; font-size: 11px; color: #888;
@@ -468,19 +544,22 @@ tr:hover td {{
     </div>
 </div>
 <p style="font-size:12px;color:#666;margin:0 0 12px;">
-    Rows = host country (where the power center is). Columns = origin country (whose embassy it is).
-    Each cell = distance from the embassy to the host's power center.
+    Rows = host country (power center location). Columns = origin country (embassy).
+    Each cell = distance (km) from embassy to host's power center. Grouped by continent.
 </p>
 <div class="table-wrap">
 <table>
-    <thead><tr>{header_cells}</tr></thead>
+    <thead>
+        <tr>{header_top}</tr>
+        <tr>{header_bottom}</tr>
+    </thead>
     <tbody>
 {rows}
     </tbody>
 </table>
 </div>
-<p class="note">Diagonal is empty (a country doesn't have an embassy in its own capital).
-Distances in km, computed using the Haversine formula.</p>
+<p class="note">Diagonal is empty (a country has no embassy in its own capital).
+Colors use percentile ranking for maximum contrast. Distances computed with the Haversine formula.</p>
 </body>
 </html>"""
     return html
