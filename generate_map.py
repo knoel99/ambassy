@@ -35,6 +35,12 @@ def _flag_img(country, size=24):
     return f'<img src="https://flagcdn.com/w40/{code}.png" width="{size}" height="{int(size*0.67)}" style="vertical-align:middle;border:1px solid #ccc;border-radius:2px;" alt="{country}">'
 
 
+def _gmaps_link(lat, lon, label=""):
+    """Return an HTML link to Google Maps for given coordinates."""
+    url = f"https://www.google.com/maps?q={lat},{lon}"
+    return f'<a href="{url}" target="_blank" style="color:#1a73e8;text-decoration:none;font-size:12px;">📍 Open in Google Maps</a>'
+
+
 def _flag_icon(country, size=28):
     """Return a folium DivIcon with a flag image."""
     code = COUNTRY_CODES.get(country, "")
@@ -84,7 +90,7 @@ def create_map():
             </h3>
             <p style="margin:4px 0;"><strong>Power Center:</strong> {host_info['name']}</p>
             <p style="margin:4px 0;"><strong>Capital:</strong> {host_info['capital']}</p>
-            <p style="margin:4px 0;"><strong>Coordinates:</strong> {pc_lat:.4f}, {pc_lon:.4f}</p>
+            <p style="margin:4px 0;">{_gmaps_link(pc_lat, pc_lon)}</p>
             <hr style="margin:8px 0;">
             <p style="margin:4px 0; font-size:0.9em;">
                 <strong>Avg. embassy distance:</strong> {stats[host_country]['average']:.1f} km<br>
@@ -146,6 +152,7 @@ def create_map():
                         <strong>Rank:</strong> #{rank} / {len(sorted_embassies)}
                         {"  (closest)" if rank == 1 else "  (farthest)" if rank == len(sorted_embassies) else ""}
                     </p>
+                    <p style="margin:6px 0 0;">{_gmaps_link(e_lat, e_lon)}</p>
                 </div>
                 """
 
