@@ -23,10 +23,33 @@ from src.data import (
 
 OUTPUT_FILE = "dist/g20_embassy_map.html"
 
+# Country code mapping for flag images
+COUNTRY_CODES = {k: v["country_code"].lower() for k, v in POWER_CENTERS.items()}
+
+
+def _flag_img(country, size=24):
+    """Return an HTML img tag for a country's flag using flagcdn.com."""
+    code = COUNTRY_CODES.get(country, "")
+    if not code:
+        return FLAGS.get(country, "")
+    return f'<img src="https://flagcdn.com/w40/{code}.png" width="{size}" height="{int(size*0.67)}" style="vertical-align:middle;border:1px solid #ccc;border-radius:2px;" alt="{country}">'
+
+
+def _flag_icon(country, size=28):
+    """Return a folium DivIcon with a flag image."""
+    code = COUNTRY_CODES.get(country, "")
+    if not code:
+        return folium.Icon(color="blue", icon="flag", prefix="fa")
+    html = f'<img src="https://flagcdn.com/w40/{code}.png" width="{size}" style="border:1px solid rgba(0,0,0,0.2);border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,0.3);cursor:pointer;">'
+    return folium.DivIcon(
+        html=html,
+        icon_size=(size, int(size * 0.67)),
+        icon_anchor=(size // 2, int(size * 0.67) // 2),
+    )
+
 
 def create_map():
     """Create the interactive G20 embassy distance map."""
-    # Base map centered on the world
     m = folium.Map(
         location=[20, 0],
         zoom_start=3,
@@ -37,18 +60,27 @@ def create_map():
     distances = compute_distances()
     stats = get_statistics()
 
+    # Store layer references for JS navigation
+    layer_var_names = {}
+
     # Create a feature group for each host country
-    for host_country, host_info in POWER_CENTERS.items():
-        fg = folium.FeatureGroup(name=f"{FLAGS.get(host_country, '')} {host_country}", show=False)
+    for idx, (host_country, host_info) in enumerate(POWER_CENTERS.items()):
+        var_name = f"fg_{idx}"
+        layer_var_names[host_country] = var_name
+
+        fg = folium.FeatureGroup(
+            name=f"{_flag_img(host_country, 16)} {host_country}",
+            show=False,
+        )
 
         pc_lat = host_info["lat"]
         pc_lon = host_info["lon"]
 
-        # Add power center marker (star icon)
+        # Power center marker (star icon)
         power_center_html = f"""
         <div style="font-family: Arial, sans-serif; min-width: 280px;">
             <h3 style="margin:0 0 8px; color:#333; border-bottom: 2px solid #e74c3c;">
-                {FLAGS.get(host_country, '')} {host_country}
+                {_flag_img(host_country)} {host_country}
             </h3>
             <p style="margin:4px 0;"><strong>Power Center:</strong> {host_info['name']}</p>
             <p style="margin:4px 0;"><strong>Capital:</strong> {host_info['capital']}</p>
@@ -56,9 +88,9 @@ def create_map():
             <hr style="margin:8px 0;">
             <p style="margin:4px 0; font-size:0.9em;">
                 <strong>Avg. embassy distance:</strong> {stats[host_country]['average']:.1f} km<br>
-                <strong>Closest embassy:</strong> {FLAGS.get(stats[host_country]['closest'][0], '')}
+                <strong>Closest embassy:</strong> {_flag_img(stats[host_country]['closest'][0], 16)}
                 {stats[host_country]['closest'][0]} ({stats[host_country]['closest'][1]:.1f} km)<br>
-                <strong>Farthest embassy:</strong> {FLAGS.get(stats[host_country]['farthest'][0], '')}
+                <strong>Farthest embassy:</strong> {_flag_img(stats[host_country]['farthest'][0], 16)}
                 {stats[host_country]['farthest'][0]} ({stats[host_country]['farthest'][1]:.1f} km)
             </p>
         </div>
@@ -71,7 +103,7 @@ def create_map():
             icon=folium.Icon(color="red", icon="star", prefix="fa"),
         ).add_to(fg)
 
-        # Add embassy markers and distance lines
+        # Embassy markers and distance lines
         if host_country in EMBASSIES:
             host_embassies = EMBASSIES[host_country]
             host_distances = distances[host_country]
@@ -98,14 +130,13 @@ def create_map():
                     g = int(180 * (1 - (ratio - 0.5) * 2))
                     line_color = f"#{r:02x}{g:02x}00"
 
-                # Embassy marker popup
                 embassy_html = f"""
                 <div style="font-family: Arial, sans-serif; min-width: 250px;">
                     <h4 style="margin:0 0 6px; color:#333;">
-                        {FLAGS.get(origin_country, '')} Embassy of {origin_country}
+                        {_flag_img(origin_country)} Embassy of {origin_country}
                     </h4>
                     <p style="margin:4px 0;">
-                        <strong>Host:</strong> {FLAGS.get(host_country, '')} {host_country} ({host_info['capital']})
+                        <strong>Host:</strong> {_flag_img(host_country, 16)} {host_country} ({host_info['capital']})
                     </p>
                     <p style="margin:4px 0;">
                         <strong>Distance to {host_info['name']}:</strong>
@@ -118,21 +149,15 @@ def create_map():
                 </div>
                 """
 
-                # Embassy marker with flag icon
-                flag = FLAGS.get(origin_country, "")
-                flag_icon = folium.DivIcon(
-                    html=f'<div style="font-size:22px;text-shadow:1px 1px 2px rgba(0,0,0,0.5);cursor:pointer;">{flag}</div>',
-                    icon_size=(28, 28),
-                    icon_anchor=(14, 14),
-                )
+                # Embassy marker with flag image
                 folium.Marker(
                     location=[e_lat, e_lon],
-                    icon=flag_icon,
+                    icon=_flag_icon(origin_country),
                     popup=folium.Popup(embassy_html, max_width=300),
-                    tooltip=f"{flag} {origin_country} - {dist_km:.1f} km",
+                    tooltip=f"{FLAGS.get(origin_country, '')} {origin_country} - {dist_km:.1f} km",
                 ).add_to(fg)
 
-                # Distance line from embassy to power center
+                # Distance line
                 folium.PolyLine(
                     locations=[[e_lat, e_lon], [pc_lat, pc_lon]],
                     color=line_color,
@@ -144,7 +169,7 @@ def create_map():
 
         fg.add_to(m)
 
-    # Add an "Overview" layer with all power centers visible by default
+    # Overview layer with all power centers
     overview = folium.FeatureGroup(name="Overview: All Power Centers", show=True)
     for country, info in POWER_CENTERS.items():
         folium.Marker(
@@ -154,22 +179,101 @@ def create_map():
         ).add_to(overview)
     overview.add_to(m)
 
-    # Add layer control
+    # Layer control
     folium.LayerControl(collapsed=False).add_to(m)
 
-    # Add a custom legend / info panel
+    # Legend / info panel
     legend_html = _build_legend_html(stats)
     m.get_root().html.add_child(folium.Element(legend_html))
 
-    # Add fullscreen plugin
+    # Navigation buttons panel
+    nav_html = _build_nav_buttons()
+    m.get_root().html.add_child(folium.Element(nav_html))
+
+    # Fullscreen plugin
     plugins.Fullscreen().add_to(m)
 
     return m
 
 
+def _build_nav_buttons():
+    """Build navigation buttons to jump to each country."""
+    buttons = ""
+    for country, info in POWER_CENTERS.items():
+        code = COUNTRY_CODES.get(country, "")
+        flag_img = f'<img src="https://flagcdn.com/w20/{code}.png" width="20" style="vertical-align:middle;border-radius:2px;">' if code else ""
+        lat = info["lat"]
+        lon = info["lon"]
+        # Determine zoom level based on country size
+        zoom = 12
+        buttons += f"""
+        <button onclick="goToCountry({lat},{lon},'{country}')"
+            style="display:flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid #ddd;
+            border-radius:6px;background:white;cursor:pointer;font-size:11px;white-space:nowrap;
+            transition:all 0.15s;"
+            onmouseover="this.style.background='#f0f0f0';this.style.borderColor='#999'"
+            onmouseout="this.style.background='white';this.style.borderColor='#ddd'">
+            {flag_img} <span>{country}</span>
+        </button>"""
+
+    return f"""
+    <div id="nav-panel" style="
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        background: white;
+        padding: 8px 12px;
+        border-radius: 10px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        max-width: 90vw;
+        justify-content: center;
+    ">
+        {buttons}
+    </div>
+    <script>
+    function goToCountry(lat, lon, name) {{
+        // Find the map object
+        var maps = document.querySelectorAll('.folium-map');
+        if (maps.length > 0) {{
+            var mapId = maps[0].id;
+            var map = window[mapId];
+            if (!map) {{
+                // Try to find via L.Map instances
+                for (var key in window) {{
+                    if (window[key] instanceof L.Map) {{
+                        map = window[key];
+                        break;
+                    }}
+                }}
+            }}
+            if (map) {{
+                map.setView([lat, lon], 12, {{animate: true, duration: 0.8}});
+
+                // Try to activate the corresponding layer
+                var inputs = document.querySelectorAll('.leaflet-control-layers-selector');
+                inputs.forEach(function(input) {{
+                    var label = input.closest('label') || input.parentElement;
+                    var text = label ? label.textContent : '';
+                    if (text.includes(name)) {{
+                        if (!input.checked) {{
+                            input.click();
+                        }}
+                    }}
+                }});
+            }}
+        }}
+    }}
+    </script>
+    """
+
+
 def _build_legend_html(stats):
     """Build the HTML for the info panel / legend."""
-    # Build the ranking table
     all_avg_distances = []
     for host, st in stats.items():
         all_avg_distances.append((host, st["average"]))
@@ -177,10 +281,12 @@ def _build_legend_html(stats):
 
     ranking_rows = ""
     for i, (country, avg) in enumerate(all_avg_distances, 1):
+        code = COUNTRY_CODES.get(country, "")
+        flag = f'<img src="https://flagcdn.com/w20/{code}.png" width="16" style="vertical-align:middle;border-radius:1px;">' if code else ""
         ranking_rows += f"""
         <tr>
             <td style="padding:2px 6px;">{i}</td>
-            <td style="padding:2px 6px;">{FLAGS.get(country, '')} {country}</td>
+            <td style="padding:2px 6px;">{flag} {country}</td>
             <td style="padding:2px 6px; text-align:right;">{avg:.1f} km</td>
         </tr>"""
 
@@ -205,7 +311,7 @@ def _build_legend_html(stats):
         </h3>
         <p style="margin:0 0 8px; color:#666; font-size:12px;">
             Distance between G20 embassies and host country power centers.
-            Use the layer control (top right) to explore each country.
+            Click a flag button above or use the layer control to explore.
         </p>
         <details>
             <summary style="cursor:pointer; font-weight:bold; color:#555; margin-bottom:6px;">
@@ -231,8 +337,7 @@ def _build_legend_html(stats):
                     <span style="color:red;">&#9733;</span> Power Center (government seat)
                 </p>
                 <p style="margin:4px 0;">
-                    <span style="display:inline-block;width:12px;height:12px;
-                    border-radius:50%;background:#555;"></span> Embassy location
+                    <img src="https://flagcdn.com/w20/us.png" width="14" style="vertical-align:middle;"> Embassy location (flag of origin country)
                 </p>
                 <p style="margin:4px 0;">
                     <span style="color:green;">---</span> Close to power center

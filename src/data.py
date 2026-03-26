@@ -150,6 +150,13 @@ POWER_CENTERS = {
         "lon": 4.3828,
         "country_code": "EU",
     },
+    "Israel": {
+        "capital": "Jerusalem",
+        "name": "Knesset",
+        "lat": 31.7765,
+        "lon": 35.2054,
+        "country_code": "IL",
+    },
 }
 
 # Embassy locations organized by host country
@@ -177,6 +184,7 @@ EMBASSIES = {
         "Turkey": (38.9165, -77.0560),          # 2525 Massachusetts Ave NW
         "United Kingdom": (38.9199, -77.0627),  # 3100 Massachusetts Ave NW
         "European Union": (38.9029, -77.0486),  # 2175 K Street NW
+        "Israel": (38.9427, -77.0684),
     },
     "United Kingdom": {
         # London — Embassies of G20 countries
@@ -199,6 +207,7 @@ EMBASSIES = {
         "Turkey": (51.4999, -0.1522),           # 43 Belgrave Square
         "United States": (51.4826, -0.1322),    # 33 Nine Elms Lane
         "European Union": (51.4955, -0.1279),   # 32 Smith Square
+        "Israel": (51.5032, -0.1896),
     },
     "France": {
         # Paris — Embassies of G20 countries
@@ -221,6 +230,7 @@ EMBASSIES = {
         "United Kingdom": (48.8693, 2.3196),    # 35 rue du Faubourg Saint-Honoré
         "United States": (48.8674, 2.3204),     # 2 avenue Gabriel
         "European Union": (48.8642, 2.2854),    # 12 avenue Eylau
+        "Israel": (48.8691, 2.3192),
     },
     "Germany": {
         # Berlin — Embassies of G20 countries
@@ -243,6 +253,7 @@ EMBASSIES = {
         "United Kingdom": (52.5157, 13.3810),   # Wilhelmstrasse 70
         "United States": (52.4523, 13.2726),    # Clayallee 170
         "European Union": (52.5170, 13.3804),   # Unter den Linden 78
+        "Israel": (52.5172, 13.3795),
     },
     "Japan": {
         # Tokyo — Embassies of G20 countries
@@ -265,6 +276,7 @@ EMBASSIES = {
         "United Kingdom": (35.6889, 139.7415),  # 1 Ichibancho, Chiyoda
         "United States": (35.6717, 139.7356),   # 1-10-5 Akasaka, Minato
         "European Union": (35.6503, 139.7303),  # 4-6-28 Minami-Azabu, Minato
+        "Israel": (35.6860, 139.7376),
     },
     "China": {
         # Beijing — Embassies (Jianguomenwai / Sanlitun / Liangmaqiao)
@@ -287,6 +299,7 @@ EMBASSIES = {
         "United Kingdom": (39.9125, 116.4541),
         "United States": (39.9532, 116.4602),
         "European Union": (39.9431, 116.4425),  # 15 Dongzhimenwai Dajie
+        "Israel": (39.9510, 116.4616),
     },
     "Russia": {
         # Moscow — Embassies
@@ -309,6 +322,7 @@ EMBASSIES = {
         "United Kingdom": (55.7506, 37.5774),   # Smolenskaya
         "United States": (55.7560, 37.5794),
         "European Union": (55.7460, 37.5900),
+        "Israel": (55.7338, 37.6237),
     },
     "Canada": {
         # Ottawa — Embassies / High Commissions
@@ -331,6 +345,7 @@ EMBASSIES = {
         "United Kingdom": (45.4222, -75.6949),  # 80 Elgin St
         "United States": (45.4280, -75.6959),
         "European Union": (45.4198, -75.6951),
+        "Israel": (45.4210, -75.6988),
     },
     "Australia": {
         # Canberra — Embassies / High Commissions in Yarralumla
@@ -353,6 +368,7 @@ EMBASSIES = {
         "United Kingdom": (-35.3013, 149.1246),
         "United States": (-35.3064, 149.1167),
         "European Union": (-35.3040, 149.1180),
+        "Israel": (-35.3078, 149.1140),
     },
     "Brazil": {
         # Brasília — Embassies in Setor de Embaixadas
@@ -375,6 +391,7 @@ EMBASSIES = {
         "United Kingdom": (-15.8094, -47.8745),
         "United States": (-15.8043, -47.8728),
         "European Union": (-15.8436, -47.8952),
+        "Israel": (-15.8277, -47.8973),
     },
     "Argentina": {
         # Buenos Aires — Embassies
@@ -397,6 +414,7 @@ EMBASSIES = {
         "United Kingdom": (-34.5852, -58.3952),
         "United States": (-34.5767, -58.4188),
         "European Union": (-34.5830, -58.4020),
+        "Israel": (-34.6085, -58.3767),
     },
     "India": {
         # New Delhi — Embassies in Chanakyapuri
@@ -419,6 +437,7 @@ EMBASSIES = {
         "United Kingdom": (28.5988, 77.1936),
         "United States": (28.5971, 77.1884),
         "European Union": (28.5950, 77.2300),   # 65 Golf Links
+        "Israel": (28.6016, 77.2212),
     },
     "Indonesia": {
         # Jakarta — Embassies in Menteng / Kuningan
@@ -441,6 +460,7 @@ EMBASSIES = {
         "United Kingdom": (-6.2309, 106.8345),
         "United States": (-6.1811, 106.8309),
         "European Union": (-6.2250, 106.8300),
+        "Israel": (-6.2200, 106.8280),
     },
     "Italy": {
         # Rome — Embassies
@@ -463,6 +483,7 @@ EMBASSIES = {
         "United Kingdom": (41.9082, 12.5012),
         "United States": (41.9069, 12.4916),
         "European Union": (41.9010, 12.4830),
+        "Israel": (41.9195, 12.4845),
     },
     "Mexico": {
         # Mexico City — Embassies in Polanco / Lomas
@@ -485,6 +506,7 @@ EMBASSIES = {
         "United Kingdom": (19.4303, -99.1657),
         "United States": (19.4251, -99.2094),
         "European Union": (19.4122, -99.2211),
+        "Israel": (19.4246, -99.2074),
     },
     "Saudi Arabia": {
         # Riyadh — Embassies in Diplomatic Quarter
@@ -529,6 +551,7 @@ EMBASSIES = {
         "United Kingdom": (-25.7457, 28.2268),
         "United States": (-25.7462, 28.2236),
         "European Union": (-25.7550, 28.2300),
+        "Israel": (-25.7591, 28.2628),
     },
     "South Korea": {
         # Seoul — Embassies
@@ -551,6 +574,7 @@ EMBASSIES = {
         "United Kingdom": (37.5673, 126.9747),
         "United States": (37.5732, 126.9778),
         "European Union": (37.5600, 126.9780),
+        "Israel": (37.5694, 126.9786),
     },
     "Turkey": {
         # Ankara — Embassies in Çankaya district
@@ -573,6 +597,7 @@ EMBASSIES = {
         "United Kingdom": (39.8897, 32.8583),
         "United States": (39.9085, 32.8033),
         "European Union": (39.8959, 32.8794),
+        "Israel": (39.9121, 32.8046),
     },
     "European Union": {
         # Brussels — Missions/Embassies to the EU
@@ -595,6 +620,27 @@ EMBASSIES = {
         "Turkey": (50.8419, 4.3677),
         "United Kingdom": (50.8417, 4.3845),
         "United States": (50.8445, 4.3670),
+    },
+    "Israel": {
+        # Tel Aviv / Jerusalem — Embassies of G20 countries
+        "Argentina": (32.1667, 34.8099),
+        "Australia": (32.0617, 34.7706),
+        "Brazil": (32.0617, 34.7706),
+        "Canada": (32.0625, 34.7905),
+        "China": (32.0700, 34.7750),
+        "France": (32.0809, 34.7678),
+        "Germany": (32.0746, 34.7833),
+        "India": (32.0830, 34.7691),
+        "Italy": (32.0628, 34.7630),
+        "Japan": (32.0787, 34.7871),
+        "Mexico": (32.0628, 34.7629),
+        "Russia": (32.0814, 34.7686),
+        "South Africa": (32.0852, 34.8046),
+        "South Korea": (32.0750, 34.7800),
+        "Turkey": (32.0886, 34.7719),
+        "United Kingdom": (32.0878, 34.7715),
+        "United States": (31.7475, 35.2247),    # Jerusalem
+        "European Union": (32.0846, 34.8008),
     },
 }
 
@@ -620,6 +666,7 @@ FLAGS = {
     "United Kingdom": "\U0001F1EC\U0001F1E7",
     "United States": "\U0001F1FA\U0001F1F8",
     "European Union": "\U0001F1EA\U0001F1FA",
+    "Israel": "\U0001F1EE\U0001F1F1",
 }
 
 # Color mapping for each country (for map markers)
@@ -644,6 +691,7 @@ COUNTRY_COLORS = {
     "United Kingdom": "#00247D",
     "United States": "#3C3B6E",
     "European Union": "#003399",
+    "Israel": "#0038B8",
 }
 
 
