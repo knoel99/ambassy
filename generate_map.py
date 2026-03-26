@@ -179,8 +179,8 @@ def create_map():
         ).add_to(overview)
     overview.add_to(m)
 
-    # Layer control
-    folium.LayerControl(collapsed=False).add_to(m)
+    # Layer control (collapsed so it can be opened/closed)
+    folium.LayerControl(collapsed=True).add_to(m)
 
     # Legend / info panel
     legend_html = _build_legend_html(stats)
@@ -313,6 +313,10 @@ def _build_legend_html(stats):
             Distance between G20 embassies and host country power centers.
             Click a flag button above or use the layer control to explore.
         </p>
+        <a href="g20_distance_matrix.html" style="display:inline-block;margin-bottom:10px;padding:6px 12px;
+            background:#0066cc;color:white;border-radius:6px;text-decoration:none;font-size:12px;font-weight:500;">
+            View Distance Matrix Table
+        </a>
         <details>
             <summary style="cursor:pointer; font-weight:bold; color:#555; margin-bottom:6px;">
                 Average Distance Ranking
@@ -351,6 +355,137 @@ def _build_legend_html(stats):
     """
 
 
+def generate_distance_matrix_html():
+    """Generate an HTML page with a distance matrix table."""
+    distances = compute_distances()
+    countries = sorted(POWER_CENTERS.keys())
+
+    # Collect all distances and find min/max for color scale
+    all_dists = []
+    for host in countries:
+        for origin in countries:
+            if host != origin and host in distances and origin in distances[host]:
+                all_dists.append(distances[host][origin])
+    min_d = min(all_dists) if all_dists else 0
+    max_d = max(all_dists) if all_dists else 1
+
+    def dist_color(d):
+        """Green (close) -> Yellow -> Red (far)."""
+        ratio = (d - min_d) / (max_d - min_d) if max_d != min_d else 0
+        if ratio < 0.5:
+            r = int(255 * ratio * 2)
+            g = 200
+        else:
+            r = 255
+            g = int(200 * (1 - (ratio - 0.5) * 2))
+        return f"rgb({r},{g},0)"
+
+    def flag_img(country, size=20):
+        code = COUNTRY_CODES.get(country, "")
+        if not code:
+            return ""
+        return f'<img src="https://flagcdn.com/w40/{code}.png" width="{size}" style="vertical-align:middle;border-radius:2px;">'
+
+    # Build header row
+    header_cells = '<th style="position:sticky;left:0;z-index:2;background:#f8f8f8;min-width:50px;"></th>'
+    for c in countries:
+        code = COUNTRY_CODES.get(c, "")
+        header_cells += f'''<th style="padding:4px;font-size:10px;writing-mode:vertical-lr;text-align:left;
+            white-space:nowrap;background:#f8f8f8;position:sticky;top:0;z-index:1;">
+            {flag_img(c, 16)}<br>{c}</th>'''
+
+    # Build data rows
+    rows = ""
+    for host in countries:
+        cells = f'<td style="position:sticky;left:0;z-index:1;background:#f8f8f8;padding:4px 8px;font-size:11px;white-space:nowrap;font-weight:600;">{flag_img(host, 16)} {host}</td>'
+        for origin in countries:
+            if host == origin:
+                cells += '<td style="background:#e0e0e0;"></td>'
+            elif host in distances and origin in distances[host]:
+                d = distances[host][origin]
+                bg = dist_color(d)
+                # Choose text color for readability
+                cells += f'<td style="background:{bg};color:#000;padding:2px 4px;font-size:10px;text-align:right;white-space:nowrap;" title="{origin} embassy in {host}: {d:.1f} km">{d:.0f}</td>'
+            else:
+                cells += '<td style="background:#f0f0f0;color:#999;font-size:9px;text-align:center;">—</td>'
+        rows += f"<tr>{cells}</tr>\n"
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>G20 Embassy Distance Matrix</title>
+<style>
+body {{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    margin: 0; padding: 20px; background: #fff;
+}}
+.header {{
+    display: flex; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;
+}}
+.header h1 {{ font-size: 20px; margin: 0; }}
+.header a {{
+    font-size: 13px; color: #0066cc; text-decoration: none;
+    padding: 6px 14px; border: 1px solid #0066cc; border-radius: 6px;
+}}
+.header a:hover {{ background: #0066cc; color: #fff; }}
+.legend {{
+    display: flex; align-items: center; gap: 4px; font-size: 11px; color: #666; margin-left: auto;
+}}
+.legend-bar {{
+    width: 120px; height: 12px; border-radius: 3px;
+    background: linear-gradient(to right, rgb(0,200,0), rgb(255,200,0), rgb(255,0,0));
+}}
+.table-wrap {{
+    overflow: auto; max-height: calc(100vh - 100px); border: 1px solid #ddd; border-radius: 8px;
+}}
+table {{
+    border-collapse: collapse; font-size: 11px;
+}}
+th, td {{
+    border: 1px solid #e0e0e0;
+}}
+th {{
+    background: #f8f8f8; font-weight: 600;
+}}
+tr:hover td {{
+    filter: brightness(0.92);
+}}
+.note {{
+    margin-top: 12px; font-size: 11px; color: #888;
+}}
+</style>
+</head>
+<body>
+<div class="header">
+    <h1>G20 Embassy Distance Matrix (km)</h1>
+    <a href="g20_embassy_map.html">← Back to Map</a>
+    <div class="legend">
+        <span>Close</span>
+        <div class="legend-bar"></div>
+        <span>Far</span>
+    </div>
+</div>
+<p style="font-size:12px;color:#666;margin:0 0 12px;">
+    Rows = host country (where the power center is). Columns = origin country (whose embassy it is).
+    Each cell = distance from the embassy to the host's power center.
+</p>
+<div class="table-wrap">
+<table>
+    <thead><tr>{header_cells}</tr></thead>
+    <tbody>
+{rows}
+    </tbody>
+</table>
+</div>
+<p class="note">Diagonal is empty (a country doesn't have an embassy in its own capital).
+Distances in km, computed using the Haversine formula.</p>
+</body>
+</html>"""
+    return html
+
+
 def generate_distance_table():
     """Generate a summary of all distances for console output."""
     stats = get_statistics()
@@ -382,6 +517,13 @@ if __name__ == "__main__":
     embassy_map = create_map()
     embassy_map.save(OUTPUT_FILE)
     print(f"Map saved to {OUTPUT_FILE}")
+
+    print("Generating distance matrix...")
+    matrix_html = generate_distance_matrix_html()
+    matrix_file = "dist/g20_distance_matrix.html"
+    with open(matrix_file, "w") as f:
+        f.write(matrix_html)
+    print(f"Matrix saved to {matrix_file}")
 
     generate_distance_table()
 
