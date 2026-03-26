@@ -374,62 +374,41 @@ def generate_distance_matrix_html():
         countries.extend(members)
         continent_ranges.append((continent, start, len(countries)))
 
-    # Use log scale for better color differentiation on small distances
     import math
-    all_dists = []
-    for host in countries:
-        for origin in countries:
-            if host != origin and host in distances and origin in distances[host]:
-                all_dists.append(distances[host][origin])
-    all_dists.sort()
 
-    # Use percentile-based coloring for much better contrast
+    # Log-based color scale on absolute distance values.
+    # Breakpoints tuned to actual data: median ~3km, 90th pct ~9km, max ~57km.
+    # log(0.5)=−0.7  log(3)=1.1  log(10)=2.3  log(60)=4.1
+    LOG_MIN = math.log(0.5)   # floor
+    LOG_MAX = math.log(60.0)  # ceiling
+
     def dist_color(d):
-        """Color based on percentile rank among all distances."""
-        # Find percentile
-        idx = 0
-        for i, v in enumerate(all_dists):
-            if v >= d:
-                idx = i
-                break
-        else:
-            idx = len(all_dists) - 1
-        ratio = idx / max(len(all_dists) - 1, 1)
+        """Color based on log of absolute distance (km)."""
+        d = max(d, 0.5)
+        ratio = (math.log(d) - LOG_MIN) / (LOG_MAX - LOG_MIN)
+        ratio = max(0.0, min(1.0, ratio))
 
-        # Multi-stop gradient: deep green -> green -> yellow -> orange -> red
+        # 5-stop gradient: deep green → light green → yellow → orange → dark red
         if ratio < 0.25:
             t = ratio / 0.25
-            r = int(0 + 80 * t)
-            g = int(140 + 60 * t)
-            b = int(60 - 30 * t)
+            r, g, b = int(30 + 50 * t), int(130 + 70 * t), int(50 - 20 * t)
         elif ratio < 0.5:
             t = (ratio - 0.25) / 0.25
-            r = int(80 + 175 * t)
-            g = int(200 - 10 * t)
-            b = int(30 - 30 * t)
+            r, g, b = int(80 + 170 * t), int(200 - 10 * t), int(30 - 30 * t)
         elif ratio < 0.75:
             t = (ratio - 0.5) / 0.25
-            r = 255
-            g = int(190 - 100 * t)
-            b = 0
+            r, g, b = 250, int(190 - 110 * t), 0
         else:
             t = (ratio - 0.75) / 0.25
-            r = 255
-            g = int(90 - 90 * t)
-            b = 0
+            r, g, b = int(250 - 50 * t), int(80 - 80 * t), int(0 + 20 * t)
         return f"rgb({r},{g},{b})"
 
     def text_color(d):
         """White text on dark backgrounds, black on light."""
-        idx = 0
-        for i, v in enumerate(all_dists):
-            if v >= d:
-                idx = i
-                break
-        else:
-            idx = len(all_dists) - 1
-        ratio = idx / max(len(all_dists) - 1, 1)
-        return "#fff" if ratio < 0.2 or ratio > 0.8 else "#000"
+        d = max(d, 0.5)
+        ratio = (math.log(d) - LOG_MIN) / (LOG_MAX - LOG_MIN)
+        ratio = max(0.0, min(1.0, ratio))
+        return "#fff" if ratio < 0.15 or ratio > 0.82 else "#000"
 
     def flag_img(country, size=20):
         code = COUNTRY_CODES.get(country, "")
@@ -510,7 +489,7 @@ body {{
 }}
 .legend-bar {{
     width: 160px; height: 14px; border-radius: 3px;
-    background: linear-gradient(to right, rgb(0,140,60), rgb(80,200,30), rgb(255,190,0), rgb(255,90,0), rgb(255,0,0));
+    background: linear-gradient(to right, rgb(30,130,50), rgb(80,200,30), rgb(250,190,0), rgb(250,80,0), rgb(200,0,20));
     border: 1px solid #ccc;
 }}
 .table-wrap {{
@@ -538,9 +517,10 @@ tr:hover td {{
     <h1>G20 Embassy Distance Matrix (km)</h1>
     <a href="g20_embassy_map.html">← Back to Map</a>
     <div class="legend">
-        <span>Close</span>
+        <span>0.5 km</span>
         <div class="legend-bar"></div>
-        <span>Far</span>
+        <span>60 km</span>
+        <span style="color:#aaa;margin-left:4px;">(log scale)</span>
     </div>
 </div>
 <p style="font-size:12px;color:#666;margin:0 0 12px;">
